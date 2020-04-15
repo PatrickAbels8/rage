@@ -26,7 +26,7 @@ def new_game():
 
 class ServerProtocol(WebSocketServerProtocol):
 
-	cards_per_client = IntVar(value=0) # not working yet
+	# cards_per_client = IntVar(value=0) # not working yet
 
 	def deal_cards(self, num_cards):
 		print('>>> DEAL:', num_cards)
@@ -37,7 +37,7 @@ class ServerProtocol(WebSocketServerProtocol):
 			s = s[num_cards:]
 		self.factory.shots = [s.pop()]
 
-		self.cards_per_client.set(num_cards)
+		# self.cards_per_client.set(num_cards)
 
 	def read_board(self):
 		top_card = self.factory.shots[-1]
@@ -69,18 +69,20 @@ class ServerProtocol(WebSocketServerProtocol):
 	def broadcastBoard(self):
 		self.factory.broadcast(self.factory.turn + "'s Turn:\n" + 'Board: ' + self.read_board() + '\nCards: ' + self.read_cards())
 
-	def var_changed(self):
-		if self.cards_per_client == 0:
-			self.deal_cards(i)
-			self.broadcastBoard()
+	# def var_changed(self):
+	# 	if self.cards_per_client == 0:
+	# 		self.deal_cards(i)
+	# 		self.broadcastBoard()
 
 	def onOpen(self):
 		self.factory.register(self)
 		if len(self.factory.clients) == max_clients:
 			new_game()
 			# todo interactive mode
-			for i in [1,2,3,4,5,6,7,8,9,10]:
-				self.cards_per_client.trace(mode="w", callback=lambda: self.var_changed(i))
+			# for i in [1,2,3,4,5,6,7,8,9,10]:
+			# 	self.cards_per_client.trace(mode="w", callback=lambda: self.var_changed(i))
+			self.deal_cards(5)
+			self.broadcastBoard()
 			
 
 	def onMessage(self, payload, isBinary):
