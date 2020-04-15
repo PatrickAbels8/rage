@@ -3,7 +3,7 @@ from twisted.internet import reactor
 pygame.font.init()
 
 win = None
-HEIGHT = 600
+HEIGHT = 601
 WIDTH = 1200
 FONT = pygame.font.SysFont("arial", 50, bold=True)
 
