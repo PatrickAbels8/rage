@@ -12,15 +12,15 @@ server:
 # runden startspieler w = s
 # für c in 1-10:
 	# teile c karten aus
-	- solange noch jemand eine karte hat
-		- für client ab w:
-			- broadcasten {BOARD=str TURN=int CARDS=str STATS=dict} (BOARD)
-			- wenn ! stiche angesagt: antwort --> stiche 
-			- sonst: antwort --> gespielte karte
+	# solange noch jemand eine karte hat
+		# für client ab w:
+			# broadcasten {BOARD=str TURN=int CARDS=str STATS=dict} (BOARD)
+			# wenn ! stiche angesagt: antwort --> stiche 
+			# sonst: antwort --> gespielte karte
 		- bestimme sieger des stichs --> neues w
 		- speicher stich in statistik
 	- speicher runde in statistik
-	- s ++ % num
+	# s ++ % num
 # bradcast statistik (END)
 
 

@@ -82,7 +82,8 @@ class ClientProtocol(WebSocketClientProtocol):
 					move = ''
 					while not move in moves:
 						move = input('move: ')
-					self.send('MOVE', move)
+					move_msg = ' '.join([self.player_id, move])
+					self.send('MOVE', move_msg)
 
 	# 		else:
 	# 			if msg[0] == self.player_id:

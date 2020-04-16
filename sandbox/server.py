@@ -24,63 +24,15 @@ from logic import create_deck
 # tk.withdraw()
 
 
-
-
-# def new_game():
-# 	print('--- NEW GAME ---')
-# 	factory.shots = []
-# 	init()
-
-
 class ServerProtocol(WebSocketServerProtocol):
 
 	# cards_per_client = IntVar(value=0) # not working yet
 
-	# def deal_cards(self, num_cards):
-	# 	print('>>> DEAL:', num_cards)
-	# 	s = stack
-	# 	shuffle(s)
-	# 	for c in self.factory.clients:
-	# 		self.factory.clients[c]['cards'] = ' '.join(s[:num_cards])
-	# 		s = s[num_cards:]
-	# 	self.factory.shots = [s.pop()]
-
-		# self.cards_per_client.set(num_cards)
 
 	# def read_board(self):
 	# 	top_card = self.factory.shots[-1]
 	# 	statistics = self.factory.statistics
 	# 	return top_card + ', ' + statistics
-
-	# def read_cards(self): 
-	# 	for c in self.factory.clients:
-	# 		if self.factory.turn == self.factory.clients[c]['id']:
-	# 			return self.factory.clients[c]['cards']
-	# 	return 'r1 r2 r3'
-
-	# def round_over(self):
-	# 	for c in self.factory.clients:
-	# 		if len(self.factory.clients[c]['cards'].split()) > 0:
-	# 			return False
-	# 	return True
-
-
-	# def render(self, shot):
-	# 	self.factory.shots.append(shot)
-	# 	for c in self.factory.clients:
-	# 		if self.factory.turn == self.factory.clients[c]['id']:
-	# 			cards = self.factory.clients[c]['cards'].split()
-	# 			cards.remove(shot)
-	# 			self.factory.clients[c]['cards'] = ' '.join(cards)				
-	# 	game_tick(self.factory.shots)
-
-	# def broadcastBoard(self):
-	# 	self.factory.broadcast(self.factory.turn + "'s Turn:\n" + 'Board: ' + self.read_board() + '\nCards: ' + self.read_cards())
-
-	# def var_changed(self):
-	# 	if self.cards_per_client == 0:
-	# 		self.deal_cards(i)
-	# 		self.broadcastBoard()
 
 	def init_game(self):
 		print('--- START GAME (', str(len(self.factory.clients)), ') ---')
@@ -98,7 +50,7 @@ class ServerProtocol(WebSocketServerProtocol):
 		start_id = random.randint(0, len(self.factory.clients)-1)
 		for i, c in enumerate(self.factory.clients):
 			if i == start_id:
-				self.factory.start_client = c
+				self.factory.start_id_id = i
 
 		
 	def start_game(self):
@@ -106,38 +58,52 @@ class ServerProtocol(WebSocketServerProtocol):
 		cards_list = list(range(1, 11)) if self.factory.mode == '++' else list(range(10, 0, -1))
 
 		# init statistics and cards
-		self.factory.stats = dict.fromkeys([self.factory.clients[c]['name'] for c in self.factory.clients], dict.fromkeys(cards_list, dict.fromkeys(['pre', 'post', 'bonus', 'points'], 0)))
+		self.factory.stats = dict.fromkeys([self.factory.clients[c]['name'] for c in self.factory.clients], dict.fromkeys(cards_list, dict.fromkeys(['pre', 'post', 'bonus', 'points'], -1)))
 		stack = self.factory.deck
 
 		# set player who starts first round
+		# for i, c in enumerate(self.factory.clients):
+		# 	if self.factory.start_client == c:
+		# 		round_start_id = i
+
+		self.game_loop()
+
+	def game_loop(self):
+		num_cards = self.factory.round
+		print('>>> ROUND', str(num_cards), '<<<')
+
+		# get clients dict with start player being first
+		# tmp_clients = {}
+		# for i, c in enumerate(self.factory.clients):
+		# 	if i >= round_start_id:
+		# 		tmp_clients[c] = self.factory.clients[c]
+		# for c in self.factory.clients:
+		# 	if c not in tmp_clients:
+		# 		tmp_clients[c] = self.factory.clients[c]
+		# self.factory.clients = tmp_clients
+
+		# shuffle cards
+		shuffle(stack)
+
+		# deal cards
+		for c in self.factory.clients:
+			self.factory.clients[c]['cards'] = ' '.join(stack[:num_cards])
+			stack = stack[num_cards:]
+		self.factory.board = stack.pop()
+
+		# start player 
 		for i, c in enumerate(self.factory.clients):
-			if self.factory.start_client == c:
-				round_start_id = i
+			if i == self.factory.start_id_id:
+				start_client = c
 
-		# game loop
-		for num_cards in cards_list:
-			print('>>> ROUND', str(num_cards), '<<<')
+		# bcast board
+		for c in self.factory.clients:
+			cur_board = {'board':self.factory.board, 'turn': self.factory.clients[start_client]['id'], 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
+			self.factory.send(c, 'BOARD', json.dumps(cur_board))
 
-			# get clients dict with start player being first
-			tmp_clients = {}
-			for i, c in enumerate(self.factory.clients):
-				if i >= round_start_id:
-					tmp_clients[c] = self.factory.clients[c]
-			for c in self.factory.clients:
-				if c not in tmp_clients:
-					tmp_clients[c] = self.factory.clients[c]
-			self.factory.clients = tmp_clients
-
-			# shuffle cards
-			shuffle(stack)
-
-			# deal cards
-			for c in self.factory.clients:
-				self.factory.clients[c]['cards'] = ' '.join(stack[:num_cards])
-				stack = stack[num_cards:]
-			self.factory.board = stack.pop()
-
-		# broadcast final stats
+		
+	# broadcast final stats
+	def end_game(self):
 		for c in self.factory.clients:
 			self.factory.send(c, 'END', json.dumps(self.factory.stats))
 
@@ -180,17 +146,70 @@ class ServerProtocol(WebSocketServerProtocol):
 				mode = msg.split()[1]
 				if mode in ['1-10', 'up', '++']:
 					self.factory.mode = '++'
+					self.factory.round = 1
 				else:
 					self.factory.mode = '--'
+					self.factory.round = 10
 				self.start_game()
 
+			if 'MOVE' in msg:
+				c_id, move = msg.split()[1:]
 
-			# print(self.factory.turn + ': ' + shot)
-			# self.render(shot)
-			# if self.round_over():
-			# 	self.cards_per_client.set(0)
-			# self.factory.turn = str((int(self.factory.turn)+1)%len(self.factory.clients)) # todo not always the same one to start
-			# self.broadcastBoard()
+				for i, c in enumerate(self.factory.clients):
+					if self.factory.clients[c]['id'] == int(c_id):
+						c_id_id = i
+
+				next_id_id = (c_id_id+1)%len(self.factory.clients)
+				for i, c in enumerate(self.factory.clients):
+					if i == c_id_id:
+						next_c = c
+						next_id = self.factory.clients[c]['id']
+
+				if self.factory.stats[self.factory.clients[c]['name']][self.factory.round]['pre'] < 0:
+					# called number of points to make
+					self.factory.stats[self.factory.clients[c]['name']][self.factory.round]['pre'] = int(move)
+					for c in self.factory.clients:
+						cur_board = {'board':self.factory.board, 'turn': next_id, 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
+						self.factory.send(c, 'BOARD', json.dumps(cur_board))
+				else:
+					# played a card
+					self.factory.board = ' '.join([self.factory.board, move])
+					
+					self.change_stats()
+
+					for c in self.factory.clients:
+						if self.factory.clients[c]['id'] == c_id:
+							cards = self.factory.clients[c]['cards'].split()
+							cards.remove(move)
+							self.factory.clients[c]['cards'] = ' '.join(cards)
+					if len(self.factory.clients[next_c]['cards'].split()) > 0:
+						# round goes on
+						# todo if board length == num clients, clear board and call render_stats for next player
+						# todo else 
+						for c in self.factory.clients:
+							cur_board = {'board':self.factory.board, 'turn': next_id, 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
+							self.factory.send(c, 'BOARD', json.dumps(cur_board))
+					else:
+						# next round
+						next_start_id_id = (next_id_id+1)%len(self.factory.clients)
+						self.factory.start_id_id = next_start_id_id
+
+						next_round = self.factory.round+1 if self.factory.mode=='++' else self.factory.round-1
+						if next_round > 10 or next_round < 1:
+							self.end_game()
+						else:
+							self.factory.round = next_round
+
+						self.game_loop()
+
+	# if board length == num clients: 
+		# evaluate (consider startidid)
+		# render +5 nd -5
+	# if no cards left:
+		# render -10 and -5
+	def change_stats(self):
+		pass
+
 
 	def connectionLost(self, reason):
 		WebSocketServerProtocol.connectionLost(self, reason)
@@ -204,8 +223,9 @@ class ServerFactory(WebSocketServerFactory):
 		self.clients = {}
 		self.mode = None
 		self.deck = None
-		self.start_client = None
+		self.start_id_id = None
 		self.board = ''
+		self.round = None
 		# self.turn = '0'
 		# self.shots = []
 		self.stats = None
@@ -228,14 +248,6 @@ class ServerFactory(WebSocketServerFactory):
 
 	def send(self, client, key, value):
 		client.sendMessage(' '.join([key, value]).encode('utf8'))
-
-	def broadcast(self, msg):
-		pass
-		# for c in self.clients:
-		# 	c.sendMessage(msg.encode('utf8'))
-
-# max_clients = 3
-
 
 
 server_factory = ServerFactory
