@@ -6,6 +6,14 @@ from twisted.web.server import Site
 from twisted.web.static import File
 from autobahn.twisted.websocket import WebSocketServerProtocol, WebSocketServerFactory, listenWS
 
+import random
+import json
+
+# tba
+from logic import create_deck
+
+
+
 # from gui import game_tick, init, stack
 # from twisted.internet.task import LoopingCall
 
@@ -74,10 +82,9 @@ class ServerProtocol(WebSocketServerProtocol):
 	# 		self.deal_cards(i)
 	# 		self.broadcastBoard()
 
-	def start_game(self):
+	def init_game(self):
 		print('--- START GAME (', str(len(self.factory.clients)), ') ---')
 
-		# choose game mode
 		ids = [self.factory.clients[c]['id'] for c in self.factory.clients]
 		client_id = 0
 		while client_id not in ids:
@@ -86,16 +93,53 @@ class ServerProtocol(WebSocketServerProtocol):
 			if self.factory.clients[c]['id'] == client_id:
 				self.factory.send(c, 'MODE', '')
 
-		# create deck
+		self.factory.deck = create_deck()
 
-		# choose start player
+		start_id = random.randint(0, len(self.factory.clients)-1)
+		for i, c in enumerate(self.factory.clients):
+			if i == start_id:
+				self.factory.start_client = c
 
-		# start round 10
-		# start round 9
-		# ...
-		# start round 1
+		
+	def start_game(self):
+		# set order of rounds
+		cards_list = list(range(1, 11)) if self.factory.mode == '++' else list(range(10, 0, -1))
 
-		# broadcast stats
+		# init statistics and cards
+		self.factory.stats = dict.fromkeys([self.factory.clients[c]['name'] for c in self.factory.clients], dict.fromkeys(cards_list, dict.fromkeys(['pre', 'post', 'bonus', 'points'], 0)))
+		stack = self.factory.deck
+
+		# set player who starts first round
+		for i, c in enumerate(self.factory.clients):
+			if self.factory.start_client == c:
+				round_start_id = i
+
+		# game loop
+		for num_cards in cards_list:
+			print('>>> ROUND', str(num_cards), '<<<')
+
+			# get clients dict with start player being first
+			tmp_clients = {}
+			for i, c in enumerate(self.factory.clients):
+				if i >= round_start_id:
+					tmp_clients[c] = self.factory.clients[c]
+			for c in self.factory.clients:
+				if c not in tmp_clients:
+					tmp_clients[c] = self.factory.clients[c]
+			self.factory.clients = tmp_clients
+
+			# shuffle cards
+			shuffle(stack)
+
+			# deal cards
+			for c in self.factory.clients:
+				self.factory.clients[c]['cards'] = ' '.join(stack[:num_cards])
+				stack = stack[num_cards:]
+			self.factory.board = stack.pop()
+
+		# broadcast final stats
+		for c in self.factory.clients:
+			self.factory.send(c, 'END', json.dumps(self.factory.stats))
 
 
 	def onOpen(self):
@@ -130,7 +174,7 @@ class ServerProtocol(WebSocketServerProtocol):
 			if 'GO' in msg:
 				go = msg.split()[1]
 				if go in ['y', 'yes', 'Y', 'Yes', '1']:
-					self.start_game()
+					self.init_game()
 
 			if 'MODE' in msg:
 				mode = msg.split()[1]
@@ -138,6 +182,7 @@ class ServerProtocol(WebSocketServerProtocol):
 					self.factory.mode = '++'
 				else:
 					self.factory.mode = '--'
+				self.start_game()
 
 
 			# print(self.factory.turn + ': ' + shot)
@@ -157,10 +202,13 @@ class ServerFactory(WebSocketServerFactory):
 	def __init__(self, url):
 		WebSocketServerFactory.__init__(self, url)
 		self.clients = {}
-		self.mode = ''
+		self.mode = None
+		self.deck = None
+		self.start_client = None
+		self.board = ''
 		# self.turn = '0'
 		# self.shots = []
-		# self.statistics = '0:3/1:0/2:0' # todo
+		self.stats = None
 		print('waiting ...')
 
 	def register(self, client): # todo reconnection not depending on clients length bc duplicate client_ids

@@ -9,7 +9,7 @@ import json
 # from tkinter import font as tkFont
 
 # tba
-# from gui import onEnd, onBoard
+from gui import onEnd, onBoard
  
 
 
@@ -66,8 +66,8 @@ class ClientProtocol(WebSocketClientProtocol):
 				self.send('GO', go)
 
 			elif 'END' in msg:
-				pass
-				# onEnd(msg)
+				msg = msg.split()[1]
+				onEnd(msg)
 
 			elif 'BOARD' in msg:
 				msg = json.loads(msg.split()[1])
@@ -77,7 +77,7 @@ class ClientProtocol(WebSocketClientProtocol):
 				stats = msg['stats']
 
 				moves = self.possible_moves(board, turn, cards)
-				# onBoard(msg, moves)
+				onBoard(msg, moves)
 				if self.player_id==msg['turn']:
 					move = ''
 					while not move in moves:

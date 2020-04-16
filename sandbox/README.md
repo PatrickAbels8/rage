@@ -6,11 +6,12 @@ server:
 # id senden (HELLO), antwort --> name speichern
 # frage client0 bei jedem client join ob spiel starten (GO), antwort --> starte spiel
 # frage client0 ob von oben oder unten (MODE), antwort --> setze spielmodus
-- deck erstellen
-- bestimme startspieler s
-- für c in 1-10:
-	- teile c karten aus
-	- runden startspieler w = s
+# deck erstellen
+# bestimme startspieler s
+# create stats
+# runden startspieler w = s
+# für c in 1-10:
+	# teile c karten aus
 	- solange noch jemand eine karte hat
 		- für client ab w:
 			- broadcasten {BOARD=str TURN=int CARDS=str STATS=dict} (BOARD)
@@ -20,13 +21,14 @@ server:
 		- speicher stich in statistik
 	- speicher runde in statistik
 	- s ++ % num
-- bradcast statistik (END)
+# bradcast statistik (END)
 
 
 logik:
 - bestimme sieger des stichs
 - speicher stich
 - speicher runde
+- deck erstellen
 
 
 
