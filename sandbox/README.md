@@ -17,18 +17,18 @@ server:
 			# broadcasten {BOARD=str TURN=int CARDS=str STATS=dict} (BOARD)
 			# wenn ! stiche angesagt: antwort --> stiche 
 			# sonst: antwort --> gespielte karte
-		- bestimme sieger des stichs --> neues w
-		- speicher stich in statistik
-	- speicher runde in statistik
+		# bestimme sieger des stichs --> neues w
+		# speicher stich in statistik
+	# speicher runde in statistik
 	# s ++ % num
 # bradcast statistik (END)
+
+todo: send/set trump, move is special card
 
 
 logik:
 - bestimme sieger des stichs
-- speicher stich
-- speicher runde
-- deck erstellen
+# deck erstellen
 
 
 
