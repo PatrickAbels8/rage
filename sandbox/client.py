@@ -39,10 +39,10 @@ class ClientProtocol(WebSocketClientProtocol):
 				onEnd(msg)
 
 			elif 'BOARD' in msg:
-				board, turn, cards, stats = msg.split(':')[1].split('#')
+				board, trump, turn, cards, stats = msg.split(':')[1].split('#')
 				turn = int(turn)
 
-				moves = self.possible_moves(board, turn, cards)
+				moves = self.possible_moves(board, trump, turn, cards)
 				onBoard(msg, moves)
 				if self.player_id==int(turn):
 
@@ -77,7 +77,7 @@ class ClientProtocol(WebSocketClientProtocol):
 						self.send('MOVE', move_msg)			
 
 	
-	def possible_moves(self, board, turn, cards):
+	def possible_moves(self, board, trump, turn, cards):
 		if self.player_id!=turn:
 			return []
 		else:

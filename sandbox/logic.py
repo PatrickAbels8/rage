@@ -2,6 +2,8 @@ import random
 
 bonus_plus = 'j+'
 bonus_minus = 'j-'
+trump_now = 'j!'
+trump_later = 'jX'
 
 
 def create_deck():
@@ -19,5 +21,5 @@ def create_deck():
 :param c_id_id: index of player who drew the last card
 :return: player_id_id who wins the pot
 '''
-def get_winner(board, c_id_id):
+def get_winner(board, trump, c_id_id):
 	return random.randint(0, len(board.split())-1)

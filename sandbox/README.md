@@ -23,8 +23,6 @@ server:
 	# s ++ % num
 # bradcast statistik (END)
 
-todo: send/set trump, move is special card
-
 
 logik:
 - bestimme sieger des stichs

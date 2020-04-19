@@ -10,7 +10,7 @@ import random
 import json
 from random import shuffle
 
-from logic import create_deck, get_winner, bonus_minus, bonus_plus
+from logic import create_deck, get_winner, bonus_minus, bonus_plus, trump_now, trump_later
 
 
 class ServerProtocol(WebSocketServerProtocol):
@@ -56,14 +56,14 @@ class ServerProtocol(WebSocketServerProtocol):
 		print('>>> ROUND', str(num_cards), '<<<')
 
 		# shuffle cards
-		stack = self.factory.deck
-		shuffle(stack)
+		self.factory.cur_deck = self.factory.deck
+		shuffle(self.factory.cur_deck)
 
 		# deal cards
 		for c in self.factory.clients:
-			self.factory.clients[c]['cards'] = ' '.join(stack[:num_cards])
-			stack = stack[num_cards:]
-		self.factory.trump = stack.pop()
+			self.factory.clients[c]['cards'] = ' '.join(self.factory.cur_deck[:num_cards])
+			self.factory.cur_deck = self.factory.cur_deck[num_cards:]
+		self.factory.trump = self.factory.cur_deck.pop()
 
 		# start player 
 		for i, c in enumerate(self.factory.clients):
@@ -73,7 +73,7 @@ class ServerProtocol(WebSocketServerProtocol):
 
 		# bcast board
 		for c in self.factory.clients:
-			cur_board = {'board':self.factory.board, 'turn': self.factory.clients[start_client]['id'], 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
+			cur_board = {'board':self.factory.board, 'trump': self.factory.trump, 'turn': self.factory.clients[start_client]['id'], 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
 			self.factory.send(c, 'BOARD'+str(self.factory.round)+self.factory.mode, cur_board)
 
 		
@@ -141,7 +141,7 @@ class ServerProtocol(WebSocketServerProtocol):
 					self.factory.stats[self.factory.clients[cur_c]['name']][self.factory.round]['pre'] = int(move)
 
 					for c in self.factory.clients:
-						cur_board = {'board':self.factory.board, 'turn': next_id, 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
+						cur_board = {'board':self.factory.board, 'trump': self.factory.trump, 'turn': next_id, 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
 						self.factory.send(c, 'BOARD'+str(self.factory.round)+self.factory.mode, cur_board)
 				else:
 					# played a card
@@ -152,8 +152,12 @@ class ServerProtocol(WebSocketServerProtocol):
 							self.factory.clients[c]['cards'] = ' '.join(cards)
 
 					self.factory.board = ' '.join([self.factory.board, move])
-					
+					if move == trump_now:
+						self.factory.trump = self.factory.cur_deck.pop()
+					elif move == trump_later:
+						self.factory.trump = ''
 
+					
 					if len(self.factory.board.split()) == len(self.factory.clients):
 						next_id = self.save_board(c_id_id)
 						self.factory.board = ''
@@ -161,7 +165,7 @@ class ServerProtocol(WebSocketServerProtocol):
 					if len(self.factory.clients[next_c]['cards'].split()) > 0:
 						# round goes on
 						for c in self.factory.clients:
-							cur_board = {'board':self.factory.board, 'turn': next_id, 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
+							cur_board = {'board':self.factory.board, 'trump': self.factory.trump, 'turn': next_id, 'cards': self.factory.clients[c]['cards'], 'stats': self.factory.stats}
 							self.factory.send(c, 'BOARD'+str(self.factory.round)+self.factory.mode, cur_board)
 					else:
 						# next round
@@ -176,10 +180,9 @@ class ServerProtocol(WebSocketServerProtocol):
 
 						self.game_loop()
 
-	# if no cards left:
-		# render -10 and -5
+
 	def save_board(self, c_id_id):
-		winner_id_id = get_winner(self.factory.board, c_id_id)
+		winner_id_id = get_winner(self.factory.board, self.factory.trump, c_id_id)
 
 		for i, c in enumerate(self.factory.clients):
 			if i == winner_id_id:
@@ -230,10 +233,11 @@ class ServerFactory(WebSocketServerFactory):
 		WebSocketServerFactory.__init__(self, url)
 		self.clients = {}
 		self.mode = None
-		self.deck = None
+		self.deck = []
+		self.cur_deck = []
 		self.start_id_id = None
 		self.board = ''
-		self.trump = None
+		self.trump = ''
 		self.round = None
 		# self.turn = '0'
 		# self.shots = []
@@ -267,7 +271,7 @@ class ServerFactory(WebSocketServerFactory):
 						stats_msg += str(stats_value[c][r][q])
 						stats_msg += '/'
 				stats_msg += '&'
-			msg = '#'.join([value['board'], str(value['turn']), value['cards'], stats_msg])
+			msg = '#'.join([value['board'], value['trump'], str(value['turn']), value['cards'], stats_msg])
 			value = msg
 		elif key == 'END':
 			msg = ''
