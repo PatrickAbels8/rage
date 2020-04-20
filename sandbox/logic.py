@@ -4,7 +4,7 @@ bonus_plus = 'j+'
 bonus_minus = 'j-'
 trump_now = 'j!'
 trump_later = 'jX'
-
+joker = 'jJ'
 
 def create_deck():
 	return '''
@@ -18,8 +18,27 @@ def create_deck():
 
 '''
 :param board: 'o1 a3 g7'
-:param c_id_id: index of player who drew the last card
+:param c_id_id: index of player who drops the first card
 :return: player_id_id who wins the pot
 '''
 def get_winner(board, trump, c_id_id):
-	return random.randint(0, len(board.split())-1)
+
+	cardsSet[] = board.split(' ')
+	winner_id = c_id_id
+	winner_card = cardsSet[winner_id]
+	for i in (0, len(board.split())-1):
+		if cardsSet[winner_id][0] == j:
+			if winner_id == len(board.split())-1:
+				winner_id = 0
+			else:
+				winner_id++
+
+
+		if cardsSet[winner_id][0] == cardsSet[i][0]:
+			if cardsSet[winner_id][1] < cardsSet[i][1]:
+				winner = i 
+		elif cardsSet[i][0] == trump:
+			winner_id = i 
+
+	return winner_id
+	#return random.randint(0, len(board.split())-1)
