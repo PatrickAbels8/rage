@@ -24,21 +24,44 @@ def create_deck():
 def get_winner(board, trump, c_id_id):
 
 	cardsSet = board.split()
-	winner_id = c_id_id
+	winner_card = cardsSet[0]
+	#winner_id = c_id_id
 	#winner_card = cardsSet[winner_id]
 	for card in cardsSet:
-		if card[0] == 'j':
-			if winner_id == len(board.split())-1:
-				winner_id = 0
-			else:
-				winner_id += 1
+		#if card[0] == 'j':
+		#	if winner_id == len(board.split())-1:
+		#		winner_id = 0
+		#	else:
+		#		winner_id += 1
+#
+#
+#		if cardsSet[winner_id][0] == cardsSet[i][0]:
+#			if cardsSet[winner_id][1] < cardsSet[i][1]:
+#				winner = i 
+#		elif cardsSet[i][0] == trump:
+#			winner_id = i 
+		if winner_card[0]=='j':
+			if card != winner_card:
+				winner_card = card 
+				if c_id_id	== len(board.split())-1:
+					c_id_id = 0
+				else:
+					c_id_id += 1
+
+		elif card[0] ==  winner_card[0]:
+			if card[1] > winner_card[1]:
+				winner_card = card
+				if c_id_id	== len(board.split())-1:
+					c_id_id = 0
+				else:
+					c_id_id += 1
+		elif card[0] == trump:
+			winner_card = card
+				if c_id_id	== len(board.split())-1:
+					c_id_id = 0
+				else:
+					c_id_id += 1
 
 
-		if cardsSet[winner_id][0] == cardsSet[i][0]:
-			if cardsSet[winner_id][1] < cardsSet[i][1]:
-				winner = i 
-		elif cardsSet[i][0] == trump:
-			winner_id = i 
-
-	return winner_id
+	return c_id_id
 	#return random.randint(0, len(board.split())-1)
