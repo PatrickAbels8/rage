@@ -64,4 +64,9 @@ def get_winner(board, trump, c_id_id):
 
 
 	return c_id_id
+
+board='r1 r2 r3'
+trump='g'
+c_id_id=2
+get_winner(board,trump,c_id_id)
 	#return random.randint(0, len(board.split())-1)
