@@ -27,6 +27,7 @@ class ServerProtocol(WebSocketServerProtocol):
 				self.factory.send(c, 'MODE', '')
 
 		self.factory.deck = create_deck()
+		self.factory.board = ''
 
 		start_id = random.randint(0, len(self.factory.clients)-1)
 		for i, c in enumerate(self.factory.clients):
@@ -173,7 +174,7 @@ class ServerProtocol(WebSocketServerProtocol):
 						self.factory.start_id_id = next_start_id_id
 
 						next_round = self.factory.round+1 if self.factory.mode=='++' else self.factory.round-1
-						if next_round > 10 or next_round < 1:
+						if next_round > self.factory.num_rounds or next_round < 1:
 							self.end_game()
 						else:
 							self.factory.round = next_round
@@ -202,14 +203,14 @@ class ServerProtocol(WebSocketServerProtocol):
 				round_over = False
 		if round_over:
 			for c in self.factory.stats:
-				if self.factory.stats[c][self.factory.round]['pre'] == self.factory.stats[c][self.factory.round]['pre']:
+				if self.factory.stats[c][self.factory.round]['pre'] == self.factory.stats[c][self.factory.round]['post']:
 					self.factory.stats[c][self.factory.round]['points'] = 10
 				else:
 					self.factory.stats[c][self.factory.round]['points'] = -5
 
 				self.factory.stats[c][self.factory.round]['points'] = self.factory.stats[c][self.factory.round]['points'] + self.factory.stats[c][self.factory.round]['post']
 				
-				if self.factory.stats[c][self.factory.round]['post'] == self.factory.round:
+				if self.factory.stats[c][self.factory.round]['post'] == self.factory.round and self.factory.round != 1:
 					self.factory.stats[c][self.factory.round]['points'] = self.factory.stats[c][self.factory.round]['points'] + self.factory.stats[c][self.factory.round]['post']
 
 				self.factory.stats[c][self.factory.round]['points'] = self.factory.stats[c][self.factory.round]['points'] + self.factory.stats[c][self.factory.round]['bonus']
@@ -242,6 +243,7 @@ class ServerFactory(WebSocketServerFactory):
 		# self.turn = '0'
 		# self.shots = []
 		self.stats = None
+		self.num_rounds = 10
 		print('waiting ...')
 
 	def register(self, client): # todo reconnection not depending on clients length bc duplicate client_ids

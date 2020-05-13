@@ -22,7 +22,7 @@ def create_deck():
 :return: player_id_id who wins the pot
 '''
 def get_winner(board, trump, c_id_id):
-
+	trump = trump[0]
 	cardsSet = board.split()
 	winner_card = cardsSet[0]
 	#winner_id = c_id_id
@@ -49,7 +49,7 @@ def get_winner(board, trump, c_id_id):
 					c_id_id += 1
 
 		elif card[0] ==  winner_card[0]:
-			if card[1] > winner_card[1]:
+			if '0123456789ABCDEF'.find(card[1]) > '0123456789ABCDEF'.find(winner_card[1]):
 				winner_card = card
 				if c_id_id	== len(board.split())-1:
 					c_id_id = 0
@@ -57,10 +57,10 @@ def get_winner(board, trump, c_id_id):
 					c_id_id += 1
 		elif card[0] == trump:
 			winner_card = card
-				if c_id_id	== len(board.split())-1:
-					c_id_id = 0
-				else:
-					c_id_id += 1
+			if c_id_id	== len(board.split())-1:
+				c_id_id = 0
+			else:
+				c_id_id += 1
 
 
 	return c_id_id
@@ -68,5 +68,5 @@ def get_winner(board, trump, c_id_id):
 board='r1 r2 r3'
 trump='g'
 c_id_id=2
-get_winner(board,trump,c_id_id)
+# get_winner(board,trump,c_id_id)
 	#return random.randint(0, len(board.split())-1)

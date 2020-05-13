@@ -41,9 +41,9 @@ client:
 
 
 gui:
-- board --> card
-- turn --> pfeil
-- cards --> list of cards
-- statistic --> tabelle
-- mögliche --> andere nicht clickable
-- end --> show end table with highlights
+# board --> card
+# turn --> pfeil
+# cards --> list of cards
+# statistic --> tabelle
+# mögliche --> andere nicht clickable
+# end --> show end table with highlights
