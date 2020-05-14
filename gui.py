@@ -1,46 +1,138 @@
-import pygame
-from twisted.internet import reactor
-pygame.font.init()
+def onBoard(action, board, trump, cards, stats, moves, player):
 
-win = None
-HEIGHT = 601
-WIDTH = 1200
-FONT = pygame.font.SysFont("arial", 50, bold=True)
+	from tkinter import Tk, Button, Entry, Label
+	from functools import partial
 
-cols = {'r': (255, 0, 0), 'g': (0, 255, 0), 'o': (255, 140, 0), 'y': (255, 255, 0), 'b': (0, 0, 255), 'p': (255, 0, 255), 'j': (105, 105, 105)}
-tk_cols = {'r': 'red', 'g': 'green3', 'o': 'dark orange', 'y': 'yellow', 'b': 'blue', 'p': 'purple', 'j': 'gray50'}
-let_to_num = {' ': ' ', '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', 'A': '10', 'B': '11', 'C': '12', 'D': '13', 'E': '14', 'F': '15', '!': '!', '-': '-5', '+': '+5', 'J':'J', 'X':'X'}
-num_to_let = {' ': ' ', '0': '0', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9', '10': 'A', '11': 'B', '12': 'C', '13': 'D', '14': 'E', '15': 'F', '!': '!', '-5': '-', '+5': '+', 'J':'J', 'X':'X'}
-stack = 'g0 g1 g2 g3 g4 g5 g6 g7 g8 g9 gA gB gC gD gE gF r0 r1 r2 r3 r4 r5 r6 r7 r8 r9 rA rB rC rD rE rF o0 o1 o2 o3 o4 o5 o6 o7 o8 o9 oA oB oC oD oE oF y0 y1 y2 y3 y4 y5 y6 y7 y8 y9 yA yB yC yD yE yF b0 b1 b2 b3 b4 b5 b6 b7 b8 b9 bA bB bC bD bE p0 p1 p2 p3 p4 p5 p6 p7 p8 p9 pA pB pC pD pE pF j! j! j! j! jX jX jX jX j- j- j- j+ j+ j+ jJ jJ'.split()
-cur_stack = []
+	def get_color(c):
+		return {'o':'orange', 'r':'red', 'g':'green', 'y':'yellow', 'b':'blue', 'p':'purple', 'j':'grey'}[c]
+
+	win = Tk()
+	win.title('Rage'+' ('+player+')')
+	win.geometry('600x400+20+20')
+
+	def clicked(c):
+		global ret 
+		ret = c
+
+		win.destroy()
+
+	# show cards
+	Label(win, text='Your Cards').grid(column=0, row=0)
+	for i, c in enumerate(cards.split()):
+		Button(win, text=c[1], bg=get_color(c[0]), fg='white', command=partial(clicked, c)).grid(column=i+1, row=0)
+
+	if action == 'call':
+		Label(win, text='Your Prediction').grid(column=0, row=1)
+		for i in range(len(cards.split())+1):
+			Button(win, text=i, command=partial(clicked, i)).grid(column=i+1, row=1)
+
+	# show trump
+	Label(win, text='Current Trump').grid(column=0, row=2)
+	if len(trump) > 1:
+		Button(win, text=trump[1], bg=get_color(trump[0]), fg='white').grid(column=1, row=2)
 
 
-def init():
-	global win, cols
+	# show boards
+	Label(win, text='Current Board').grid(column=0, row=3)
+	if len(board) > 1:
+		for i, bc in enumerate(board.split()):
+			Button(win, text=bc[1], bg=get_color(bc[0]), fg='white').grid(column=i+1, row=3)
 
-	pygame.display.set_caption('Rage')
-	win = pygame.display.set_mode((WIDTH, HEIGHT))
-	win.fill((255, 255, 255))
-	draw('j ')
+	# show stats
+	for i, p in enumerate(stats.split('&')):
+		Label(win, text=p.split('_')[0]).grid(row=0, column=i+20) 
+		for j, r in enumerate(p.split('_')[1:]):
+			Label(win, text=r).grid(row=j+1, column=i+20)
+
+	win.mainloop()
+
+	return ret
 
 
-def draw(card):
-	global win, cols, let_to_num, FONT
+def onEnd(stats):
 
-	pygame.draw.rect(win, cols[card[0]], pygame.Rect(10, 10, 60, 120))
-	win.blit(FONT.render(let_to_num[card[1]], 5, (255, 255, 255)), (15, 15))
+	from tkinter import Tk, Button, Entry, Label
+	from functools import partial
 
-	pygame.display.update()
+	win = Tk()
+	win.title('Rage')
+	win.geometry('600x400+20+20')
+
+	# show stats
+	for i, p in enumerate(stats.split('&')):
+		result = 0
+
+		Label(win, text=p.split('_')[0]).grid(row=0, column=i) 
+		for j, r in enumerate(p.split('_')[1:]):
+			Label(win, text=r).grid(row=j+1, column=i)
+			result += int(r.split('/')[3])
+
+		Label(win, text=str(result)).grid(row=len(p.split('_')[1:])+1, column=i)
+
+	win.mainloop()
+
+def onMode():
+	from tkinter import Tk, Button, Entry, Label
+	from functools import partial
+
+	win = Tk()
+	win.title('Rage')
+	win.geometry('600x400+20+20')
+
+	def clicked(c):
+		global ret 
+		ret = c
+		win.destroy()
+
+	Button(win, text='10 => 1', bg='red', fg='white', command=partial(clicked, '--')).grid(column=0, row=0)
+	Button(win, text='1 => 10', bg='green', fg='white', command=partial(clicked, '++')).grid(column=1, row=0)
 
 
-def game_tick(shots):
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			reactor.stop()
+	win.mainloop()
 
-	global cur_stack
-	if len(shots) > len(cur_stack):
-		cur_stack.append(shots[-1])
-		draw(cur_stack[-1])
+	return ret
 
-	return True
+def onGo(cur_players):
+	from tkinter import Tk, Button, Entry, Label
+	from functools import partial
+
+	win = Tk()
+	win.title('Rage')
+	win.geometry('600x400+20+20')
+
+	def clicked(c):
+		global ret 
+		ret = c
+		win.destroy()
+
+	Label(win, text=str(cur_players)+' Player(s) joined! Ready to start the game?').grid(column=0, row=0)
+	Button(win, text='GO', bg='red', fg='white', command=partial(clicked, 'y')).grid(column=0, row=1)
+	Button(win, text='WAIT', bg='green', fg='white', command=partial(clicked, 'n')).grid(column=1, row=1)
+
+
+	win.mainloop()
+
+	return ret
+
+def onName():
+	from tkinter import Tk, Button, Entry, Label
+	from functools import partial
+
+	win = Tk()
+	win.title('Rage')
+	win.geometry('600x400+20+20')
+
+	def returnbtnstring():
+		global ret 
+		ret = e.get()
+		win.destroy()
+
+	Label(win, text='Name', bg='white', fg='black').grid(column=0, row=0)
+	e = Entry(win)
+	e.grid(column=1, row=0)
+	Button(win, text='JOIN', bg='black', fg='white', command=returnbtnstring).grid(column=0, row=1)
+
+
+	win.mainloop()
+
+	return ret

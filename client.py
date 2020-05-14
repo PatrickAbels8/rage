@@ -2,43 +2,17 @@ import sys
 from time import sleep
 from twisted.internet import reactor
 from autobahn.twisted.websocket import WebSocketClientProtocol, WebSocketClientFactory, connectWS
+import json
 
-from gui import stack, num_to_let, cols, let_to_num, tk_cols
-from tkinter import *
-from tkinter import font as tkFont
+from gui import onEnd, onBoard, onName, onMode, onGo
  
 
 
 
 class ClientProtocol(WebSocketClientProtocol):
 
-	player_id = '0'
-	played_card = None
-
-	def clicked(self, card, window):
-		# print(card)
-		self.played_card.set(card)
-		window.destroy()
-		
-
-	def game_tick(self, cards):
-		window = Tk()
-		window.title("Rage")
-		window.geometry('1200x200')
-
-		self.played_card = StringVar()
-
-		for i, card in enumerate(cards.split()): # todo always returns last card
-			helv36 = tkFont.Font(family='Helvetica', size=36, weight=tkFont.BOLD) 
-			btn = Button(window, activebackground='white', fg='black', text=let_to_num[card[1]], bg=tk_cols[card[0]], font=helv36, command=lambda: self.clicked(card, window))
-			btn.grid(column=i, row=0)
-
-		window.mainloop()
-
-	def shot_made(self):
-		shot = self.played_card.get()
-		# print(shot)
-		self.sendMessage(shot.encode('utf8'))
+	player_id = 0
+	player_name = ''
 
 	def onOpen(self):
 		print('CONNECTED TO SERVER')
@@ -46,20 +20,77 @@ class ClientProtocol(WebSocketClientProtocol):
 	def onMessage(self, payload, isBinary):
 		if not isBinary:
 			msg = payload.decode('utf8')
+			print(msg)
 			if 'HELLO' in msg:
-				self.player_id = msg.split()[1]
-				print('Player ID: ' + self.player_id)
-			else:
-				if msg[0] == self.player_id:
-					print(msg)
-					turn, board, cards = msg.split('\n')
-					board = board.split(',')[0].split(':')[1].strip()
-					cards = cards.split(':')[1].strip()
+				self.player_id = int(msg.split(':')[1])
+				name = ''
+				while len(name) < 2:
+					name = onName()
+				self.player_name = name
+				self.send('HELLO', ' '.join([str(self.player_id), self.player_name]))
 
-					self.game_tick(cards)
-					print(self.played_card.get())
-					self.sendMessage(self.played_card.get().encode('utf8'))					
+			elif 'MODE' in msg:
+				mode = ''
+				while mode not in ['++', '--']:
+					mode = onMode()
+				self.send('MODE', mode)
 
+			elif 'GO' in msg:
+				cur_players = int(msg.split(':')[1])
+				go = ''
+				while go not in ['y', 'n']:
+					go = onGo(cur_players)
+				self.send('GO', go)
+
+			elif 'END' in msg:
+				msg = msg.split(':')[1]
+				onEnd(msg)
+
+			elif 'BOARD' in msg:
+				board, trump, turn, cards, stats = msg.split(':')[1].split('#')
+				turn = int(turn)
+
+				moves = self.possible_moves(board, trump, turn, cards)
+				if self.player_id==int(turn):
+
+					# preproc stats
+					cs = stats.split('&')[:-1]
+					for i in range(len(cs)):
+						cs[i] = cs[i].split('_')
+					for c in cs:
+						if self.player_name in c:
+							my_stats = c[1:]
+					round_mode = msg.split(':')[0].split('D')[1]
+					index = int(round_mode[:-2])-1 if round_mode[-2:]=='++' else 10-int(round_mode[:-2])
+					call = len(board)==0 and int(my_stats[index].split('/')[0])<0
+
+					# wait for goal
+					if call:	
+						move = -1
+						while move not in range(len(cards.split())+1):
+							move = onBoard('call', board, trump, cards, stats, moves, self.player_name)
+
+						move_msg = ' '.join([str(self.player_id), str(move)])
+						self.send('MOVE', move_msg)	
+
+					# wait for move
+					else:
+						move = ''
+						while not move in moves:
+							move = onBoard('move', board, trump, cards, stats, moves, self.player_name)
+						move_msg = ' '.join([str(self.player_id), move])
+						self.send('MOVE', move_msg)			
+
+	
+	def possible_moves(self, board, trump, turn, cards):
+		if self.player_id!=turn:
+			return []
+		else:
+			return cards.split()
+
+
+	def send(self, key, value):
+		self.sendMessage(' '.join([key, value]).encode('utf8'))
 
 
 factory = WebSocketClientFactory('ws://127.0.0.1:9000')
